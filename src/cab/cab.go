@@ -28,6 +28,7 @@ func init() {
 }
 
 func main() {
+
 	APIKEY = os.Getenv("SF_APIKEY")
 	if APIKEY == "" {
 		fmt.Println("export SF_APIKEY=")
@@ -63,6 +64,15 @@ func main() {
 			fmt.Println(err)
 			os.Exit(2)
 		}
+	case "restart":
+		r, err := util.RestartLastLevel()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
+		}
+		// for now, I'm going to assume each restart provides the same info.
+		fmt.Printf("Restarted %f.\nVenues\t%s\nAccount\t%s\nTickers\t%s\n", r["instanceId"], r["venues"], r["account"], r["tickers"])
+		os.Exit(1)
 	default:
 		fmt.Println("Gimme something to work with, ok?")
 		os.Exit(2)

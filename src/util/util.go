@@ -2,11 +2,12 @@ package util
 
 import (
 	"bytes"
-	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"time"
 )
 
@@ -46,9 +47,16 @@ func SlurpFromURL(t string) []byte {
 	return b
 }
 
-func Decode64(str string) []byte {
-	t, _ := base64.StdEncoding.DecodeString(str)
-	return t
+func SlurpFromFile(filePath string) []byte {
+	f, err := os.Open(filePath)
+	if err != nil {
+		fmt.Printf("Something bad happened: %v", err)
+	}
+	data, err := ioutil.ReadAll(f)
+	if err != nil {
+		fmt.Printf("Something bad happened: %v", err)
+	}
+	return data
 }
 
 func Post(u *url.URL, data []byte, key string) (*Response, error) {
@@ -212,4 +220,57 @@ func NewOrder(a, v, s, d, ot string, p, qty int) *Order {
 		Price:     p,
 		Qty:       qty,
 	}
+}
+
+func RestartLastLevel() (map[string]interface{}, error) {
+	cooks := make(map[string]string)
+	var levels map[string]interface{}
+	var level string
+	var infos map[string]interface{}
+
+	x := SlurpFromFile("/Users/erin/cookies.txt")
+	b := bytes.Split(x, []byte("\r\n"))
+	for _, v := range b {
+		c := bytes.Split(v, []byte("\t"))
+		l := len(c)
+		if l > 1 {
+			cooks[string(c[l-2])] = string(c[l-1])
+		}
+	}
+
+	if err := json.Unmarshal([]byte(cooks["levelInstances"]), &levels); err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+
+	// Get the last one. Yuck.
+	for k, _ := range levels {
+		level = k
+	}
+
+	u, _ := url.Parse("https://www.stockfighter.io/gm/levels/" + level)
+	req, err := http.NewRequest("POST", u.String(), nil)
+	if err != nil {
+		return infos, err
+	}
+	for k, v := range cooks {
+		req.AddCookie(&http.Cookie{
+			Name:  k,
+			Value: v,
+		})
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return infos, err
+	}
+
+	r, err := processResponse(res)
+
+	if err := json.Unmarshal(r.Body, &infos); err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+
+	return infos, err
 }
