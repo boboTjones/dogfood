@@ -188,13 +188,13 @@ func GetQuote(v, s string) (string, string) {
 
 func GetOrder(v, s, id string) (string, string) {
 	//get /venues/:venue/stocks/:stock/orders/:id
-	return "GET", "/ob/api/venues/" + v + "/stocks/" + s + "/orders" + id
+	return "GET", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + id
 
 }
 
 func DelOrder(v, s, id string) (string, string) {
 	//delete /venues/:venue/stocks/:stock/orders/:order
-	return "DELETE", "/ob/api/venues/" + v + "/stocks/" + s + "/orders" + id
+	return "DELETE", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + id
 
 }
 
@@ -206,7 +206,7 @@ func GetOrdersForAcct(v, a string) (string, string) {
 
 func GetOrdersForAcctForSymbol(v, a, s string) (string, string) {
 	//get /venues/:venue/accounts/:account/stocks/:stock/orders
-	return "GET", "/ob/api/venues/" + v + "/accounts/" + a + "/stocks" + s + "/orders"
+	return "GET", "/ob/api/venues/" + v + "/accounts/" + a + "/stocks/" + s + "/orders"
 
 }
 
@@ -253,6 +253,9 @@ func RestartLastLevel() (map[string]interface{}, error) {
 	if err != nil {
 		return infos, err
 	}
+
+	// invalid byte '"' in Cookie.Value; dropping invalid bytes
+	// doesn't like the levelInstances cookie; maybe encode to %22?
 	for k, v := range cooks {
 		req.AddCookie(&http.Cookie{
 			Name:  k,

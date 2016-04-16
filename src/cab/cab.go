@@ -1,3 +1,5 @@
+//cab is for chock-a-block
+
 package main
 
 import (
@@ -15,6 +17,7 @@ var (
 	Order                  *util.Order
 	Action, Method, Path   string
 	Venue, Account, Symbol string
+	Price, Qty             int
 	err                    error
 	data                   []byte
 )
@@ -24,7 +27,8 @@ func init() {
 	flag.StringVar(&Venue, "v", Venue, "Exchange venue name")
 	flag.StringVar(&Account, "a", Account, "Account Number")
 	flag.StringVar(&Symbol, "s", Symbol, "Symbol")
-
+	flag.IntVar(&Price, "p", Price, "Price")
+	flag.IntVar(&Qty, "q", Qty, "Quantity")
 }
 
 func main() {
@@ -57,8 +61,7 @@ func main() {
 		Method, Path = util.GetOrdersForAcctForSymbol(Venue, Account, Symbol)
 	case "buy":
 		Method, Path = util.MakeOrder(Venue, Symbol)
-		Order = util.NewOrder(Account, Venue, Symbol, "buy", "limit", 5000, 10)
-		fmt.Printf("%#v\n", Order)
+		Order = util.NewOrder(Account, Venue, Symbol, "buy", "limit", Price, Qty)
 		data, err = json.Marshal(Order)
 		if err != nil {
 			fmt.Println(err)
@@ -71,12 +74,11 @@ func main() {
 			os.Exit(2)
 		}
 		// for now, I'm going to assume each restart provides the same info.
-		fmt.Printf("Restarted %f.\nVenues\t%s\nAccount\t%s\nTickers\t%s\n", r["instanceId"], r["venues"], r["account"], r["tickers"])
+		fmt.Printf("Restarted %g.\nVenues\t%s\nAccount\t%s\nTickers\t%s\n", r["instanceId"], r["venues"], r["account"], r["tickers"])
 		os.Exit(1)
 	default:
 		fmt.Println("Gimme something to work with, ok?")
 		os.Exit(2)
-
 	}
 
 	switch Method {
