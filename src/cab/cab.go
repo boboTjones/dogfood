@@ -74,7 +74,7 @@ func main() {
 			os.Exit(2)
 		}
 		// for now, I'm going to assume each restart provides the same info.
-		fmt.Printf("Restarted %g.\nVenues\t%s\nAccount\t%s\nTickers\t%s\n", r["instanceId"], r["venues"], r["account"], r["tickers"])
+		fmt.Printf("Restarted %g.\nVenues\t%s\nAccount\t%s\nTickers\t%s\n", r.InstanceId, r.Venues[0], r.Account, r.Tickers[0])
 		os.Exit(1)
 	default:
 		fmt.Println("Gimme something to work with, ok?")

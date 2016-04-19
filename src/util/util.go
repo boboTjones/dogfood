@@ -222,11 +222,19 @@ func NewOrder(a, v, s, d, ot string, p, qty int) *Order {
 	}
 }
 
-func RestartLastLevel() (map[string]interface{}, error) {
+type Restart struct {
+	InstanceId float64  `json:"instanceId"`
+	Account    string   `json:"account"`
+	Tickers    []string `json:"tickers"`
+	Venues     []string `json:"venues"`
+}
+
+func RestartLastLevel() (Restart, error) {
 	cooks := make(map[string]string)
 	var levels map[string]interface{}
-	var level string
-	var infos map[string]interface{}
+	//var level string
+	var instanceId float64
+	var infos Restart
 
 	x := SlurpFromFile("/Users/erin/cookies.txt")
 	b := bytes.Split(x, []byte("\r\n"))
@@ -244,11 +252,12 @@ func RestartLastLevel() (map[string]interface{}, error) {
 	}
 
 	// Get the last one. Yuck.
-	for k, _ := range levels {
-		level = k
+	for _, v := range levels {
+		//level = k
+		instanceId = v.(float64)
 	}
 
-	u, _ := url.Parse("https://www.stockfighter.io/gm/levels/" + level)
+	u, _ := url.Parse(fmt.Sprintf("https://www.stockfighter.io/gm/instances/%g/restart", instanceId))
 	req, err := http.NewRequest("POST", u.String(), nil)
 	if err != nil {
 		return infos, err
