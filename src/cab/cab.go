@@ -17,7 +17,7 @@ var (
 	Order                  *util.Order
 	Action, Method, Path   string
 	Venue, Account, Symbol string
-	Price, Qty             int
+	Price, Qty, orderid    int
 	err                    error
 	data                   []byte
 )
@@ -29,6 +29,7 @@ func init() {
 	flag.StringVar(&Symbol, "s", Symbol, "Symbol")
 	flag.IntVar(&Price, "p", Price, "Price")
 	flag.IntVar(&Qty, "q", Qty, "Quantity")
+	flag.IntVar(&orderid, "i", orderid, "id of the order you want to modify")
 }
 
 func main() {
@@ -54,12 +55,13 @@ func main() {
 	case "list":
 		Method, Path = util.GetStocks(Venue)
 	case "quote":
-		Method, Path = util.GetQuote(Venue, Symbol)
+		q := util.GetQuote(t, Venue, Symbol, APIKEY)
+		fmt.Println(q)
 	case "orders":
 		Method, Path = util.GetOrdersForAcct(Venue, Account)
 	case "mine":
 		Method, Path = util.GetOrdersForAcctForSymbol(Venue, Account, Symbol)
-	case "buy":
+	case "limit":
 		Method, Path = util.MakeOrder(Venue, Symbol)
 		Order = util.NewOrder(Account, Venue, Symbol, "buy", "limit", Price, Qty)
 		data, err = json.Marshal(Order)
@@ -67,6 +69,16 @@ func main() {
 			fmt.Println(err)
 			os.Exit(2)
 		}
+	case "market":
+		Method, Path = util.MakeOrder(Venue, Symbol)
+		Order = util.NewOrder(Account, Venue, Symbol, "buy", "market", Price, Qty)
+		data, err = json.Marshal(Order)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(2)
+		}
+	case "delete":
+		Method, Path = util.DelOrder(Venue, Symbol, orderid)
 	case "restart":
 		r, err := util.RestartLastLevel()
 		if err != nil {
@@ -88,6 +100,9 @@ func main() {
 	case "POST":
 		t.Path = Path
 		Res, err = util.Post(t, data, APIKEY)
+	case "DELETE":
+		t.Path = Path
+		Res, err = util.Del(t, APIKEY)
 	default:
 		fmt.Println("Method not supplied")
 		os.Exit(2)

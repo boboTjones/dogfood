@@ -67,7 +67,7 @@ func Post(u *url.URL, data []byte, key string) (*Response, error) {
 	}
 
 	req.Header.Set("X-Starfighter-Authorization", key)
-	fmt.Println(req)
+	fmt.Println(req.URL)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -88,7 +88,7 @@ func Get(u *url.URL, key string) (*Response, error) {
 	}
 
 	req.Header.Set("X-Starfighter-Authorization", key)
-	fmt.Println(req)
+	fmt.Println(req.URL)
 
 	client := http.Client{Timeout: (2999 * time.Millisecond)}
 
@@ -181,20 +181,15 @@ func MakeOrder(v, s string) (string, string) {
 	return "POST", "/ob/api/venues/" + v + "/stocks/" + s + "/orders"
 }
 
-func GetQuote(v, s string) (string, string) {
-	//get /venues/:venue/stocks/:stock/quote
-	return "GET", "/ob/api/venues/" + v + "/stocks/" + s + "/quote"
-}
-
 func GetOrder(v, s, id string) (string, string) {
 	//get /venues/:venue/stocks/:stock/orders/:id
 	return "GET", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + id
 
 }
 
-func DelOrder(v, s, id string) (string, string) {
+func DelOrder(v, s string, id int) (string, string) {
 	//delete /venues/:venue/stocks/:stock/orders/:order
-	return "DELETE", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + id
+	return "DELETE", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + fmt.Sprintf("%d", id)
 
 }
 
@@ -285,4 +280,36 @@ func RestartLastLevel() (Restart, error) {
 	}
 
 	return infos, err
+}
+
+type Quote struct {
+	Symbol   string  `json:"symbol"`
+	Venue    string  `json:"venue"`
+	Bid      float64 `json:"bid"`
+	Ask      float64 `json:"ask"`
+	BidSize  float64 `json:"bidSize"`
+	AskSize  float64 `json:"askSize"`
+	BidDepth float64 `json:"bidDepth"`
+	AskDept  float64 `json:"askDepth"`
+	Last     float64 `json:"last"`
+	LastSize float64 `json:"lastSize"`
+}
+
+func GetQuote(t *url.URL, v, s, key string) Quote {
+	//get /venues/:venue/stocks/:stock/quote
+	var quote Quote
+	t.Path = "/ob/api/venues/" + v + "/stocks/" + s + "/quote"
+	r, err := Get(t, key)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+
+	fmt.Println(string(r.Body))
+
+	if err := json.Unmarshal(r.Body, &quote); err != nil {
+		fmt.Println(err)
+		os.Exit(2)
+	}
+	return quote
 }
