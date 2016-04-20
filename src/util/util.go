@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,16 +21,6 @@ type Response struct {
 	Body    []byte
 	Err     error
 	Cookies map[string]string
-}
-
-type Order struct {
-	Account   string `json:"account"`
-	Venue     string `json:"venue"`
-	Stock     string `json:"stock"`
-	Price     int    `json:"price"`
-	Qty       int    `json:"qty"`
-	Direction string `json:"direction"`
-	OrderType string `json:"orderType"`
 }
 
 func SlurpFromURL(t string) []byte {
@@ -74,7 +63,7 @@ func Post(u *url.URL, data []byte, key string) (*Response, error) {
 		return &Response{Path: u.Path, Method: "POST", Err: err}, err
 	}
 
-	r, err := processResponse(res)
+	r, err := ProcessResponse(res)
 	r.Path = u.Path
 	r.Method = "POST"
 	r.Err = err
@@ -97,7 +86,7 @@ func Get(u *url.URL, key string) (*Response, error) {
 		return &Response{Path: u.Path, Method: "GET", Err: err}, err
 	}
 
-	r, err := processResponse(res)
+	r, err := ProcessResponse(res)
 	r.Path = u.Path
 	r.Method = "GET"
 	r.Err = err
@@ -117,7 +106,7 @@ func Put(u *url.URL, content []byte, key string) (*Response, error) {
 		return &Response{Path: u.Path, Method: "PUT", Err: err}, err
 	}
 
-	r, err := processResponse(res)
+	r, err := ProcessResponse(res)
 	r.Path = u.Path
 	r.Method = "PUT"
 	r.Err = err
@@ -137,14 +126,14 @@ func Del(u *url.URL, key string) (*Response, error) {
 		return &Response{Path: u.Path, Method: "DELETE", Err: err}, err
 	}
 
-	r, err := processResponse(res)
+	r, err := ProcessResponse(res)
 	r.Path = u.Path
 	r.Method = "DELETE"
 	r.Err = err
 	return r, err
 }
 
-func processResponse(res *http.Response) (r *Response, err error) {
+func ProcessResponse(res *http.Response) (r *Response, err error) {
 	ret := &Response{
 		Code: res.StatusCode,
 	}
@@ -154,162 +143,4 @@ func processResponse(res *http.Response) (r *Response, err error) {
 		return ret, err
 	}
 	return ret, nil
-}
-
-func Heartbeat() (string, string) {
-	//get /venues/:venue/heartbeat
-	return "GET", "/ob/api/heartbeat"
-}
-
-func Vbeat(v string) (string, string) {
-	//get /venues/:venue/heartbeat
-	return "GET", "/ob/api/venues/" + v + "/heartbeat"
-}
-
-func GetStocks(v string) (string, string) {
-	//get /venues/:venue/stocks
-	return "GET", "/ob/api/venues/" + v + "/stocks"
-}
-
-func GetStock(v, s string) (string, string) {
-	//get /venues/:venue/stocks/:stock
-	return "GET", "/ob/api/venues/" + v + "/stocks/" + s
-}
-
-func MakeOrder(v, s string) (string, string) {
-	//post /venues/:venue/stocks/:stock/orders
-	return "POST", "/ob/api/venues/" + v + "/stocks/" + s + "/orders"
-}
-
-func GetOrder(v, s, id string) (string, string) {
-	//get /venues/:venue/stocks/:stock/orders/:id
-	return "GET", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + id
-
-}
-
-func DelOrder(v, s string, id int) (string, string) {
-	//delete /venues/:venue/stocks/:stock/orders/:order
-	return "DELETE", "/ob/api/venues/" + v + "/stocks/" + s + "/orders/" + fmt.Sprintf("%d", id)
-
-}
-
-func GetOrdersForAcct(v, a string) (string, string) {
-	//get /venues/:venue/accounts/:account/orders
-	return "GET", "/ob/api/venues/" + v + "/accounts/" + a + "/orders"
-
-}
-
-func GetOrdersForAcctForSymbol(v, a, s string) (string, string) {
-	//get /venues/:venue/accounts/:account/stocks/:stock/orders
-	return "GET", "/ob/api/venues/" + v + "/accounts/" + a + "/stocks/" + s + "/orders"
-
-}
-
-func NewOrder(a, v, s, d, ot string, p, qty int) *Order {
-	return &Order{
-		Account:   a,
-		Venue:     v,
-		Stock:     s,
-		Direction: d,
-		OrderType: ot,
-		Price:     p,
-		Qty:       qty,
-	}
-}
-
-type Restart struct {
-	InstanceId float64  `json:"instanceId"`
-	Account    string   `json:"account"`
-	Tickers    []string `json:"tickers"`
-	Venues     []string `json:"venues"`
-}
-
-func RestartLastLevel() (Restart, error) {
-	cooks := make(map[string]string)
-	var levels map[string]interface{}
-	//var level string
-	var instanceId float64
-	var infos Restart
-
-	x := SlurpFromFile("/Users/erin/cookies.txt")
-	b := bytes.Split(x, []byte("\r\n"))
-	for _, v := range b {
-		c := bytes.Split(v, []byte("\t"))
-		l := len(c)
-		if l > 1 {
-			cooks[string(c[l-2])] = string(c[l-1])
-		}
-	}
-
-	if err := json.Unmarshal([]byte(cooks["levelInstances"]), &levels); err != nil {
-		fmt.Println(err)
-		os.Exit(2)
-	}
-
-	// Get the last one. Yuck.
-	for _, v := range levels {
-		//level = k
-		instanceId = v.(float64)
-	}
-
-	u, _ := url.Parse(fmt.Sprintf("https://www.stockfighter.io/gm/instances/%g/restart", instanceId))
-	req, err := http.NewRequest("POST", u.String(), nil)
-	if err != nil {
-		return infos, err
-	}
-
-	// invalid byte '"' in Cookie.Value; dropping invalid bytes
-	// doesn't like the levelInstances cookie; maybe encode to %22?
-	for k, v := range cooks {
-		req.AddCookie(&http.Cookie{
-			Name:  k,
-			Value: v,
-		})
-	}
-
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return infos, err
-	}
-
-	r, err := processResponse(res)
-
-	if err := json.Unmarshal(r.Body, &infos); err != nil {
-		fmt.Println(err)
-		os.Exit(2)
-	}
-
-	return infos, err
-}
-
-type Quote struct {
-	Symbol   string  `json:"symbol"`
-	Venue    string  `json:"venue"`
-	Bid      float64 `json:"bid"`
-	Ask      float64 `json:"ask"`
-	BidSize  float64 `json:"bidSize"`
-	AskSize  float64 `json:"askSize"`
-	BidDepth float64 `json:"bidDepth"`
-	AskDept  float64 `json:"askDepth"`
-	Last     float64 `json:"last"`
-	LastSize float64 `json:"lastSize"`
-}
-
-func GetQuote(t *url.URL, v, s, key string) Quote {
-	//get /venues/:venue/stocks/:stock/quote
-	var quote Quote
-	t.Path = "/ob/api/venues/" + v + "/stocks/" + s + "/quote"
-	r, err := Get(t, key)
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(2)
-	}
-
-	fmt.Println(string(r.Body))
-
-	if err := json.Unmarshal(r.Body, &quote); err != nil {
-		fmt.Println(err)
-		os.Exit(2)
-	}
-	return quote
 }

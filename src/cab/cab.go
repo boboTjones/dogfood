@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sf"
 	"util"
 )
 
 var (
 	APIKEY                 string
 	Res                    *util.Response
-	Order                  *util.Order
+	Order                  *sf.Order
 	Action, Method, Path   string
 	Venue, Account, Symbol string
 	Price, Qty, orderid    int
@@ -51,36 +52,36 @@ func main() {
 
 	switch Action {
 	case "heartbeat":
-		Method, Path = util.Heartbeat()
+		Method, Path = sf.Heartbeat()
 	case "list":
-		Method, Path = util.GetStocks(Venue)
+		Method, Path = sf.GetStocks(Venue)
 	case "quote":
-		q := util.GetQuote(t, Venue, Symbol, APIKEY)
+		q, _ := sf.GetQuote(t, Venue, Symbol, APIKEY)
 		fmt.Println(q)
 	case "orders":
-		Method, Path = util.GetOrdersForAcct(Venue, Account)
+		Method, Path = sf.GetOrdersForAcct(Venue, Account)
 	case "mine":
-		Method, Path = util.GetOrdersForAcctForSymbol(Venue, Account, Symbol)
+		Method, Path = sf.GetOrdersForAcctForSymbol(Venue, Account, Symbol)
 	case "limit":
-		Method, Path = util.MakeOrder(Venue, Symbol)
-		Order = util.NewOrder(Account, Venue, Symbol, "buy", "limit", Price, Qty)
+		Method, Path = sf.MakeOrder(Venue, Symbol)
+		Order = sf.NewOrder(Account, Venue, Symbol, "buy", "limit", Price, Qty)
 		data, err = json.Marshal(Order)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 	case "market":
-		Method, Path = util.MakeOrder(Venue, Symbol)
-		Order = util.NewOrder(Account, Venue, Symbol, "buy", "market", Price, Qty)
+		Method, Path = sf.MakeOrder(Venue, Symbol)
+		Order = sf.NewOrder(Account, Venue, Symbol, "buy", "market", Price, Qty)
 		data, err = json.Marshal(Order)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
 		}
 	case "delete":
-		Method, Path = util.DelOrder(Venue, Symbol, orderid)
+		Method, Path = sf.DelOrder(Venue, Symbol, orderid)
 	case "restart":
-		r, err := util.RestartLastLevel()
+		r, err := sf.RestartLastLevel()
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(2)
