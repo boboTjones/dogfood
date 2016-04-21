@@ -2,3 +2,4 @@ pkg
 bin
 bin/cab
 pkg/darwin_amd64/util.a
+src/github.com
